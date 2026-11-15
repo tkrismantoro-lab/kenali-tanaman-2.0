@@ -1,0 +1,6 @@
+{
+  "name": "Kenali Tanaman",
+  "description": "Aplikasi identifikasi tanaman, panduan budidaya organik/nonorganik, dan Dokter Tanaman AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

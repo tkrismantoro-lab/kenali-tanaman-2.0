@@ -1,0 +1,355 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidStringList(listVal, maxItems, maxLen) {
+      return listVal is list &&
+             listVal.size() <= maxItems &&
+             (listVal.size() == 0 || (listVal[0] is string && listVal[0].size() <= maxLen));
+    }
+
+    function isValidMethod(method) {
+      return method in ['organic', 'nonorganic', 'combined'];
+    }
+
+    function isValidGrowthStage(stage) {
+      return stage in ['seedling', 'vegetative', 'flowering', 'fruiting', 'harvest'];
+    }
+
+    function isValidHealthStatus(status) {
+      return status in ['healthy', 'needs_attention', 'problem', 'follow_up'];
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             data.experienceLevel in ['beginner', 'intermediate', 'experienced'] &&
+             data.gardeningType in ['home_garden', 'agricultural_land', 'mixed'] &&
+             isValidMethod(data.preferredMethod) &&
+             data.remindersEnabled is bool &&
+             data.onboardingCompleted is bool &&
+             data.demoSeeded is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidUserPlant(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.plantKnowledgeId is string && data.plantKnowledgeId.size() >= 1 && data.plantKnowledgeId.size() <= 80 &&
+             data.plantName is string && data.plantName.size() >= 1 && data.plantName.size() <= 100 &&
+             data.nickname is string && data.nickname.size() <= 100 &&
+             data.scientificName is string && data.scientificName.size() <= 120 &&
+             data.category is string && data.category.size() <= 60 &&
+             isValidMethod(data.cultivationMethod) &&
+             data.plantingLocation is string && data.plantingLocation.size() <= 80 &&
+             data.plantingDate is string && data.plantingDate.size() <= 30 &&
+             isValidGrowthStage(data.growthStage) &&
+             isValidHealthStatus(data.healthStatus) &&
+             data.isDemoData is bool &&
+             isValidStringList(data.completedStages, 12, 64) &&
+             (!('imageResKey' in data) || data.imageResKey == null || (data.imageResKey is string && data.imageResKey.size() <= 100)) &&
+             (!('imageBase64' in data) || data.imageBase64 == null || (data.imageBase64 is string && data.imageBase64.size() <= 200000)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidPlantDiagnosis(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.plantId is string && data.plantId.size() >= 1 && data.plantId.size() <= 128 &&
+             data.plantName is string && data.plantName.size() >= 1 && data.plantName.size() <= 100 &&
+             data.photoType is string && data.photoType.size() <= 40 &&
+             data.symptomNotes is string && data.symptomNotes.size() <= 1000 &&
+             isValidMethod(data.cultivationMethod) &&
+             data.conditionSummary is string && data.conditionSummary.size() >= 1 && data.conditionSummary.size() <= 500 &&
+             isValidHealthStatus(data.healthStatus) &&
+             isValidStringList(data.observations, 15, 300) &&
+             isValidStringList(data.possibleCausesSummary, 10, 500) &&
+             data.confidence in ['low', 'moderate', 'high'] &&
+             data.riskLevel in ['low', 'moderate', 'high', 'urgent'] &&
+             isValidStringList(data.recommendedActions, 15, 400) &&
+             data.followUpDays is int && data.followUpDays >= 1 && data.followUpDays <= 90 &&
+             isValidStringList(data.limitations, 10, 300) &&
+             data.isDemoData is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidTreatmentPlan(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.plantId is string && data.plantId.size() >= 1 && data.plantId.size() <= 128 &&
+             data.plantName is string && data.plantName.size() >= 1 && data.plantName.size() <= 100 &&
+             data.diagnosisId is string && data.diagnosisId.size() <= 128 &&
+             data.problem is string && data.problem.size() >= 1 && data.problem.size() <= 300 &&
+             data.suspectedCause is string && data.suspectedCause.size() <= 300 &&
+             data.recommendedTreatment is string && data.recommendedTreatment.size() >= 1 && data.recommendedTreatment.size() <= 1500 &&
+             data.treatmentDate is string && data.treatmentDate.size() <= 30 &&
+             data.followUpDate is string && data.followUpDate.size() <= 30 &&
+             data.expectedResponse is string && data.expectedResponse.size() <= 500 &&
+             data.status in ['not_started', 'in_progress', 'awaiting_eval', 'improved', 'unchanged', 'worsened', 'completed'] &&
+             data.outcomeNotes is string && data.outcomeNotes.size() <= 500 &&
+             data.isDemoData is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidCareTask(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.plantId is string && data.plantId.size() >= 1 && data.plantId.size() <= 128 &&
+             data.plantName is string && data.plantName.size() >= 1 && data.plantName.size() <= 100 &&
+             data.taskType in ['water', 'fertilize', 'prune', 'inspect', 'followup', 'harvest'] &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 160 &&
+             data.reason is string && data.reason.size() <= 400 &&
+             data.scheduledDate is string && data.scheduledDate.size() <= 30 &&
+             data.frequencyDays is int && data.frequencyDays >= 1 && data.frequencyDays <= 180 &&
+             data.completed is bool &&
+             data.isDemoData is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidGrowthPhoto(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.plantId is string && data.plantId.size() >= 1 && data.plantId.size() <= 128 &&
+             data.plantName is string && data.plantName.size() >= 1 && data.plantName.size() <= 100 &&
+             data.dateLabel is string && data.dateLabel.size() >= 1 && data.dateLabel.size() <= 40 &&
+             isValidGrowthStage(data.growthStage) &&
+             data.notes is string && data.notes.size() <= 500 &&
+             (!('photoResKey' in data) || data.photoResKey == null || (data.photoResKey is string && data.photoResKey.size() <= 100)) &&
+             (!('photoBase64' in data) || data.photoBase64 == null || (data.photoBase64 is string && data.photoBase64.size() <= 200000)) &&
+             (!('aiSummary' in data) || data.aiSummary == null || (data.aiSummary is string && data.aiSummary.size() <= 1000)) &&
+             data.isDemoData is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'displayName', 'experienceLevel', 'gardeningType',
+                         'preferredMethod', 'remindersEnabled', 'onboardingCompleted',
+                         'demoSeeded', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'displayName', 'experienceLevel', 'gardeningType',
+                         'preferredMethod', 'remindersEnabled', 'onboardingCompleted',
+                         'demoSeeded', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'displayName', 'experienceLevel', 'gardeningType',
+                         'preferredMethod', 'remindersEnabled', 'onboardingCompleted',
+                         'demoSeeded', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /plants/{plantId} {
+        allow get: if isOwner(userId) && isValidId(plantId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(plantId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'plantKnowledgeId', 'plantName', 'nickname',
+                           'scientificName', 'category', 'cultivationMethod',
+                           'plantingLocation', 'plantingDate', 'growthStage',
+                           'healthStatus', 'isDemoData', 'completedStages',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'plantKnowledgeId', 'plantName', 'nickname',
+                           'scientificName', 'category', 'cultivationMethod',
+                           'plantingLocation', 'plantingDate', 'growthStage',
+                           'healthStatus', 'isDemoData', 'completedStages',
+                           'imageResKey', 'imageBase64', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidUserPlant(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(plantId) &&
+                         isValidUserPlant(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'plantKnowledgeId', 'plantName', 'nickname',
+                           'scientificName', 'category', 'cultivationMethod',
+                           'plantingLocation', 'plantingDate', 'growthStage',
+                           'healthStatus', 'completedStages', 'imageResKey',
+                           'imageBase64', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(plantId);
+      }
+
+      match /diagnoses/{diagnosisId} {
+        allow get: if isOwner(userId) && isValidId(diagnosisId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(diagnosisId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'plantId', 'plantName', 'photoType',
+                           'symptomNotes', 'cultivationMethod', 'conditionSummary',
+                           'healthStatus', 'observations', 'possibleCausesSummary',
+                           'confidence', 'riskLevel', 'recommendedActions',
+                           'followUpDays', 'limitations', 'isDemoData',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'plantId', 'plantName', 'photoType',
+                           'symptomNotes', 'cultivationMethod', 'conditionSummary',
+                           'healthStatus', 'observations', 'possibleCausesSummary',
+                           'confidence', 'riskLevel', 'recommendedActions',
+                           'followUpDays', 'limitations', 'isDemoData',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidPlantDiagnosis(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(diagnosisId) &&
+                         isValidPlantDiagnosis(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'symptomNotes', 'conditionSummary', 'healthStatus',
+                           'observations', 'possibleCausesSummary', 'confidence',
+                           'riskLevel', 'recommendedActions', 'followUpDays',
+                           'limitations', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(diagnosisId);
+      }
+
+      match /treatment_plans/{planId} {
+        allow get: if isOwner(userId) && isValidId(planId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(planId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'plantId', 'plantName', 'diagnosisId',
+                           'problem', 'suspectedCause', 'recommendedTreatment',
+                           'treatmentDate', 'followUpDate', 'expectedResponse',
+                           'status', 'outcomeNotes', 'isDemoData',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'plantId', 'plantName', 'diagnosisId',
+                           'problem', 'suspectedCause', 'recommendedTreatment',
+                           'treatmentDate', 'followUpDate', 'expectedResponse',
+                           'status', 'outcomeNotes', 'isDemoData',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidTreatmentPlan(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(planId) &&
+                         isValidTreatmentPlan(incoming()) &&
+                         existing().status != 'completed' &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'recommendedTreatment', 'treatmentDate', 'followUpDate',
+                           'expectedResponse', 'status', 'outcomeNotes', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(planId);
+      }
+
+      match /care_tasks/{taskId} {
+        allow get: if isOwner(userId) && isValidId(taskId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(taskId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'plantId', 'plantName', 'taskType',
+                           'title', 'reason', 'scheduledDate', 'frequencyDays',
+                           'completed', 'isDemoData', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'plantId', 'plantName', 'taskType',
+                           'title', 'reason', 'scheduledDate', 'frequencyDays',
+                           'completed', 'isDemoData', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidCareTask(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(taskId) &&
+                         isValidCareTask(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'title', 'reason', 'scheduledDate', 'frequencyDays',
+                           'completed', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(taskId);
+      }
+
+      match /growth_photos/{photoId} {
+        allow get: if isOwner(userId) && isValidId(photoId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(photoId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'plantId', 'plantName', 'dateLabel',
+                           'growthStage', 'notes', 'isDemoData',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'plantId', 'plantName', 'dateLabel',
+                           'growthStage', 'notes', 'photoResKey', 'photoBase64',
+                           'aiSummary', 'isDemoData', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidGrowthPhoto(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(photoId) &&
+                         isValidGrowthPhoto(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'dateLabel', 'growthStage', 'notes', 'aiSummary', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(photoId);
+      }
+    }
+  }
+}

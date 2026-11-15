@@ -1,0 +1,250 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User gardening preferences, onboarding state, and profile metadata.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the owner." },
+        "displayName": { "type": "string", "description": "Display name of the grower." },
+        "experienceLevel": { "type": "string", "enum": ["beginner", "intermediate", "experienced"] },
+        "gardeningType": { "type": "string", "enum": ["home_garden", "agricultural_land", "mixed"] },
+        "preferredMethod": { "type": "string", "enum": ["organic", "nonorganic", "combined"] },
+        "remindersEnabled": { "type": "boolean" },
+        "onboardingCompleted": { "type": "boolean" },
+        "demoSeeded": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on create." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update." }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "experienceLevel",
+        "gardeningType",
+        "preferredMethod",
+        "remindersEnabled",
+        "onboardingCompleted",
+        "demoSeeded",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserPlant": {
+      "title": "UserPlant",
+      "description": "Personal plant record in the user's My Garden collection.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "plantKnowledgeId": { "type": "string" },
+        "plantName": { "type": "string" },
+        "nickname": { "type": "string" },
+        "scientificName": { "type": "string" },
+        "category": { "type": "string" },
+        "cultivationMethod": { "type": "string", "enum": ["organic", "nonorganic", "combined"] },
+        "plantingLocation": { "type": "string" },
+        "plantingDate": { "type": "string" },
+        "growthStage": { "type": "string", "enum": ["seedling", "vegetative", "flowering", "fruiting", "harvest"] },
+        "healthStatus": { "type": "string", "enum": ["healthy", "needs_attention", "problem", "follow_up"] },
+        "isDemoData": { "type": "boolean" },
+        "completedStages": { "type": "array", "description": "List of completed cultivation stage IDs." },
+        "imageResKey": { "type": "string" },
+        "imageBase64": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "plantKnowledgeId",
+        "plantName",
+        "nickname",
+        "scientificName",
+        "category",
+        "cultivationMethod",
+        "plantingLocation",
+        "plantingDate",
+        "growthStage",
+        "healthStatus",
+        "isDemoData",
+        "completedStages",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PlantDiagnosis": {
+      "title": "PlantDiagnosis",
+      "description": "Structured Plant Doctor AI diagnosis record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "plantId": { "type": "string" },
+        "plantName": { "type": "string" },
+        "photoType": { "type": "string" },
+        "symptomNotes": { "type": "string" },
+        "cultivationMethod": { "type": "string", "enum": ["organic", "nonorganic", "combined"] },
+        "conditionSummary": { "type": "string" },
+        "healthStatus": { "type": "string", "enum": ["healthy", "needs_attention", "problem", "follow_up"] },
+        "observations": { "type": "array" },
+        "possibleCausesSummary": { "type": "array" },
+        "confidence": { "type": "string", "enum": ["low", "moderate", "high"] },
+        "riskLevel": { "type": "string", "enum": ["low", "moderate", "high", "urgent"] },
+        "recommendedActions": { "type": "array" },
+        "followUpDays": { "type": "integer" },
+        "limitations": { "type": "array" },
+        "isDemoData": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "plantId",
+        "plantName",
+        "photoType",
+        "symptomNotes",
+        "cultivationMethod",
+        "conditionSummary",
+        "healthStatus",
+        "observations",
+        "possibleCausesSummary",
+        "confidence",
+        "riskLevel",
+        "recommendedActions",
+        "followUpDays",
+        "limitations",
+        "isDemoData",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "TreatmentPlan": {
+      "title": "TreatmentPlan",
+      "description": "Actionable treatment plan and effectiveness tracking record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "plantId": { "type": "string" },
+        "plantName": { "type": "string" },
+        "diagnosisId": { "type": "string" },
+        "problem": { "type": "string" },
+        "suspectedCause": { "type": "string" },
+        "recommendedTreatment": { "type": "string" },
+        "treatmentDate": { "type": "string" },
+        "followUpDate": { "type": "string" },
+        "expectedResponse": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["not_started", "in_progress", "awaiting_eval", "improved", "unchanged", "worsened", "completed"]
+        },
+        "outcomeNotes": { "type": "string" },
+        "isDemoData": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "plantId",
+        "plantName",
+        "diagnosisId",
+        "problem",
+        "suspectedCause",
+        "recommendedTreatment",
+        "treatmentDate",
+        "followUpDate",
+        "expectedResponse",
+        "status",
+        "outcomeNotes",
+        "isDemoData",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CareTask": {
+      "title": "CareTask",
+      "description": "Plant care reminder and scheduled task.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "plantId": { "type": "string" },
+        "plantName": { "type": "string" },
+        "taskType": { "type": "string", "enum": ["water", "fertilize", "prune", "inspect", "followup", "harvest"] },
+        "title": { "type": "string" },
+        "reason": { "type": "string" },
+        "scheduledDate": { "type": "string" },
+        "frequencyDays": { "type": "integer" },
+        "completed": { "type": "boolean" },
+        "isDemoData": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "plantId",
+        "plantName",
+        "taskType",
+        "title",
+        "reason",
+        "scheduledDate",
+        "frequencyDays",
+        "completed",
+        "isDemoData",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "GrowthPhoto": {
+      "title": "GrowthPhoto",
+      "description": "Periodic growth monitoring photo entry for timeline and comparison.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "plantId": { "type": "string" },
+        "plantName": { "type": "string" },
+        "dateLabel": { "type": "string" },
+        "growthStage": { "type": "string", "enum": ["seedling", "vegetative", "flowering", "fruiting", "harvest"] },
+        "notes": { "type": "string" },
+        "photoResKey": { "type": "string" },
+        "photoBase64": { "type": "string" },
+        "aiSummary": { "type": "string" },
+        "isDemoData": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "plantId",
+        "plantName",
+        "dateLabel",
+        "growthStage",
+        "notes",
+        "isDemoData",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Owner-scoped user gardening profile and preferences."
+    },
+    "/users/{userId}/plants/{plantId}": {
+      "schema": { "$ref": "#/entities/UserPlant" },
+      "description": "User's personal garden plants."
+    },
+    "/users/{userId}/diagnoses/{diagnosisId}": {
+      "schema": { "$ref": "#/entities/PlantDiagnosis" },
+      "description": "Plant Doctor AI diagnosis history per user."
+    },
+    "/users/{userId}/treatment_plans/{planId}": {
+      "schema": { "$ref": "#/entities/TreatmentPlan" },
+      "description": "Treatment plans and effectiveness outcomes per user."
+    },
+    "/users/{userId}/care_tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/CareTask" },
+      "description": "Personalized care calendar tasks per user."
+    },
+    "/users/{userId}/growth_photos/{photoId}": {
+      "schema": { "$ref": "#/entities/GrowthPhoto" },
+      "description": "Periodic growth photo timeline records per user."
+    }
+  }
+}

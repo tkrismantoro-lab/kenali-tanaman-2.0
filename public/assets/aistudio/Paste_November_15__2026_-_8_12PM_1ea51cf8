@@ -1,0 +1,1586 @@
+# MASTER PROMPT — KENALI TANAMAN 2.0
+## AI Plant Identification, Cultivation Guide & Plant Doctor
+
+## 1. ROLE AND OBJECTIVE
+
+Act as a senior full-stack developer, UI/UX designer, AI engineer, agricultural technology expert, horticulturist, plant pathologist, and product architect.
+
+Build a complete, modern, responsive, mobile-first application called:
+
+**KENALI TANAMAN 2.0 — AI PLANT CARE & DIAGNOSIS**
+
+The application must help users:
+1. Identify plants using photographs.
+2. Learn cultivation methods for identified plants.
+3. Select organic, non-organic, or combined cultivation methods.
+4. Receive personalized cultivation guidance.
+5. Monitor plant growth using periodic photographs.
+6. Detect potential plant health problems using AI image analysis.
+7. Receive practical, evidence-based treatment recommendations.
+8. Track plant care activities and treatment effectiveness.
+9. Maintain a personal digital garden containing all their plants.
+
+Do not build merely a static landing page or UI prototype.
+
+Build a functional application with working navigation, data persistence, interactive components, forms, photo uploads, AI integration, and realistic sample data.
+
+If a feature requires external credentials or services, create the integration architecture and a working fallback/demo mode. Never pretend an external AI analysis has been performed when it has not.
+
+---
+
+# 2. PRODUCT DESIGN PRINCIPLES
+
+The application must follow these principles:
+
+- Easy to use for people with no agricultural knowledge.
+- Every recommendation must be actionable.
+- Use simple Indonesian language.
+- Avoid overwhelming users with technical agricultural terminology.
+- Provide explanations of why a particular action is recommended.
+- Prioritize plant health and prevention over excessive fertilizer or pesticide use.
+- Separate verified agricultural information from AI-generated hypotheses.
+- Never provide an overly confident disease diagnosis based only on one photograph.
+- Never recommend pesticide use without appropriate safety controls.
+- Every plant must have its own care history.
+- Users must be able to track whether a treatment works.
+- Organic and non-organic cultivation must have different recommendation logic.
+- Users must be able to switch cultivation methods.
+- Support both home gardening and agricultural cultivation.
+
+---
+
+# 3. VISUAL DESIGN SYSTEM
+
+## 3.1 Overall visual direction
+
+Create an attractive premium gardening application inspired by modern plant-care apps, agricultural technology applications, and clean Google Material Design interfaces.
+
+The visual appearance should be:
+
+- Modern.
+- Natural.
+- Premium but approachable.
+- Clean and uncluttered.
+- Fresh and calming.
+- Highly visual.
+- Easy to navigate using one hand on a smartphone.
+
+Avoid:
+- Outdated agricultural software interfaces.
+- Excessive green backgrounds.
+- Dense tables on mobile screens.
+- Excessive gradients.
+- Cartoon-like illustrations.
+- Tiny text.
+- Overly complex dashboards.
+
+## 3.2 Color palette
+
+Use the following color palette consistently:
+
+Primary Green:
+#2E7D32
+
+Dark Green:
+#1B4332
+
+Light Green:
+#E8F5E9
+
+Mint:
+#D8F3DC
+
+Background:
+#F7F9F5
+
+Surface:
+#FFFFFF
+
+Primary Text:
+#1F2937
+
+Secondary Text:
+#6B7280
+
+Warning:
+#F59E0B
+
+Danger:
+#DC2626
+
+Success:
+#16A34A
+
+Info:
+#2563EB
+
+Use green for plant care, success, and positive actions.
+
+Use amber for attention and moderate risk.
+
+Use red only for serious problems or urgent actions.
+
+## 3.3 Typography
+
+Use:
+- Inter or a similar modern sans-serif font.
+- Clear typography hierarchy.
+- Large readable headings.
+- Comfortable line spacing.
+- Minimum 14px body text on mobile.
+- Larger typography for important plant names and status indicators.
+
+## 3.4 Layout
+
+Mobile-first responsive design.
+
+Recommended mobile layout:
+- Screen width approximately 360–430px.
+- Rounded cards with 16–24px radius.
+- Generous spacing.
+- Full-width primary actions.
+- Bottom navigation.
+- Floating camera action when appropriate.
+- Image-first plant cards.
+
+Desktop layout:
+- Sidebar navigation.
+- Main content area.
+- Optional contextual information panel.
+- Maximum content width for readability.
+
+## 3.5 Icons
+
+Use Lucide icons consistently.
+
+Recommended icons:
+- Leaf
+- Sprout
+- Camera
+- Scan
+- Stethoscope
+- Calendar
+- Droplets
+- Sun
+- FlaskConical
+- Bug
+- ShieldCheck
+- ChartLine
+- History
+- Bell
+- BookOpen
+- Search
+- Plus
+- Settings
+
+Do not mix different icon styles.
+
+## 3.6 Image design
+
+Use realistic plant photography.
+
+Images should show:
+- Real plants.
+- Real leaves.
+- Real fruits.
+- Real gardening activities.
+- Real cultivation environments.
+
+Use image placeholders or generated visual assets when appropriate.
+
+Avoid relying on emoji as the primary plant imagery.
+
+---
+
+# 4. APPLICATION NAVIGATION
+
+Create the following bottom navigation for mobile:
+
+1. Beranda
+2. Kebun Saya
+3. Identifikasi
+4. Panduan
+5. Profil
+
+The identification button may be emphasized as a prominent central camera button.
+
+Desktop navigation should use a sidebar.
+
+All navigation items must work.
+
+---
+
+# 5. BERANDA / HOME DASHBOARD
+
+Create a beautiful personalized home dashboard.
+
+## Header
+
+Display:
+- App logo.
+- Greeting: "Selamat datang di Kenali Tanaman"
+- User greeting if available.
+- Notification icon.
+
+## Main hero section
+
+Display a large hero card:
+
+Title:
+"Kenali tanamanmu, rawat dengan lebih mudah"
+
+Subtitle:
+"Foto tanaman, temukan panduan perawatan, dan pantau kesehatannya bersama AI."
+
+Primary button:
+"Identifikasi Tanaman"
+
+Secondary button:
+"Mulai Menanam"
+
+Use a realistic gardening image with a green visual atmosphere.
+
+## Quick actions
+
+Create four interactive quick-action cards:
+
+1. Kenali Tanaman
+2. Periksa Kesehatan
+3. Tambah Tanaman
+4. Panduan Budidaya
+
+## My Garden Summary
+
+Display:
+- Total plants.
+- Healthy plants.
+- Plants needing attention.
+- Today's care activities.
+
+## Plant Care Today
+
+Show care tasks that are scheduled for today.
+
+Example:
+- Siram tanaman cabai.
+- Periksa kondisi daun tomat.
+- Evaluasi pemupukan pakcoy.
+
+Do not automatically assume every plant needs watering daily.
+
+## Featured cultivation guide
+
+Show a featured plant cultivation article.
+
+Example:
+"Panduan Menanam Cabai di Polybag"
+
+## Plant health alert
+
+Display alerts only when there are relevant plant records or sample demo data.
+
+---
+
+# 6. PLANT IDENTIFICATION MODULE
+
+Create a complete plant identification experience.
+
+## Identification page
+
+Display:
+- Large camera interface.
+- Button "Ambil Foto".
+- Button "Pilih dari Galeri".
+- Photo preview.
+- Retake photo.
+- Analyze button.
+
+Allow:
+- Camera capture.
+- Gallery upload.
+- JPG, PNG, and WebP.
+- Mobile camera access where supported.
+- Image preview before analysis.
+
+## AI identification
+
+Use Gemini multimodal capabilities to analyze the uploaded image.
+
+Ask AI to identify:
+
+- Common Indonesian name.
+- Scientific name.
+- Alternative local names.
+- Plant category.
+- Confidence level.
+- Visible identifying characteristics.
+
+If identification confidence is low:
+- Show the top possible matches.
+- Ask the user to take another photo.
+- Request a photo of leaves, flowers, or fruits.
+- Avoid presenting uncertain identification as confirmed.
+
+## Identification result page
+
+Display:
+
+- Large plant image.
+- Plant name.
+- Scientific name.
+- Identification confidence.
+- Plant description.
+- Plant category.
+- Basic characteristics.
+- Benefits or common uses.
+- Toxicity warning when relevant and supported.
+- Cultivation suitability.
+
+Primary action:
+"Mulai Panduan Budidaya"
+
+Secondary action:
+"Simpan ke Kebun Saya"
+
+Additional action:
+"Periksa Kondisi Tanaman"
+
+## Plant identification result design
+
+Use an elegant plant profile card with:
+- Large photo.
+- Botanical name.
+- Common name.
+- Confidence indicator.
+- Short description.
+
+---
+
+# 7. PLANT PROFILE MODULE
+
+Each identified or manually added plant must have a dedicated profile.
+
+Plant profile must include:
+
+- Plant name.
+- Scientific name.
+- User-defined plant nickname.
+- Plant photograph.
+- Plant category.
+- Cultivation method.
+- Planting location.
+- Planting date.
+- Estimated age.
+- Growth stage.
+- Current health status.
+- Care schedule.
+- Cultivation guide.
+- Diagnosis history.
+- Treatment history.
+- Growth photo history.
+
+Example:
+
+Plant name: Cabai Rawit
+
+Nickname: Cabai depan rumah
+
+Cultivation method: Organik
+
+Location: Polybag
+
+Planting date: 10 November 2026
+
+Growth stage: Vegetative
+
+Health status: Healthy
+
+The user can edit all personal plant information.
+
+---
+
+# 8. CULTIVATION METHOD SELECTION
+
+This is a core application feature.
+
+Whenever users begin cultivation guidance, ask them to select a cultivation method.
+
+Create three selectable cards:
+
+## A. ORGANIK
+
+Description:
+"Budidaya yang mengutamakan bahan organik, kesehatan tanah, dan pengendalian hama secara alami atau biologis."
+
+Visual:
+Green card with compost and healthy plants.
+
+## B. NONORGANIK
+
+Description:
+"Budidaya menggunakan pupuk mineral dan sarana pengendalian yang sesuai kebutuhan tanaman serta ketentuan penggunaan."
+
+Visual:
+Clean agricultural card with fertilizer and cultivated plants.
+
+## C. KOMBINASI / SEMI-ORGANIK
+
+Description:
+"Pendekatan kombinasi menggunakan bahan organik dan pupuk mineral secara terukur sesuai kebutuhan tanaman."
+
+Visual:
+Balanced green and neutral card.
+
+Important:
+Do not automatically classify the combined method as organic-certified cultivation.
+
+The selected method must influence:
+- Cultivation instructions.
+- Fertilizer recommendations.
+- Pest management.
+- Disease treatment recommendations.
+- Care schedule.
+- Plant diagnosis treatment options.
+
+Users must be able to change the method later.
+
+When the method changes, preserve the care history and explain that the cultivation recommendations will be adjusted.
+
+---
+
+# 9. CULTIVATION GUIDE MODULE
+
+Create a comprehensive cultivation guide for each plant.
+
+The guide must be organized into understandable stages.
+
+## Stage 1: Planting preparation
+
+Provide:
+- Suitable planting location.
+- Sunlight requirements.
+- Temperature considerations.
+- Soil or growing media.
+- Container or land requirements.
+- Seed selection.
+- Seedling selection.
+- Basic equipment.
+
+## Stage 2: Seed preparation
+
+Provide:
+- Seed preparation.
+- Seed soaking when appropriate.
+- Seedling media.
+- Germination instructions.
+- Seedling care.
+- Estimated germination time.
+
+Only recommend soaking or seed treatments when suitable for that plant.
+
+## Stage 3: Planting
+
+Provide:
+- Planting depth.
+- Plant spacing.
+- Planting technique.
+- Transplanting instructions.
+- Initial watering.
+- Initial care.
+
+## Stage 4: Vegetative growth
+
+Provide:
+- Watering principles.
+- Nutrient requirements.
+- Fertilization schedule.
+- Weed management.
+- Pruning when applicable.
+- Plant support when necessary.
+- Pest monitoring.
+
+## Stage 5: Flowering
+
+Provide:
+- Flowering requirements.
+- Nutrient management.
+- Water management.
+- Pollination considerations.
+- Flower drop prevention.
+- Monitoring.
+
+## Stage 6: Fruiting
+
+Provide:
+- Fruit development requirements.
+- Nutrient management.
+- Water management.
+- Pest and disease monitoring.
+- Fruit protection.
+
+## Stage 7: Harvest
+
+Provide:
+- Harvest indicators.
+- Estimated harvest period.
+- Harvest technique.
+- Post-harvest handling.
+- Expected yield range where supported.
+
+## Stage 8: Post-harvest
+
+Provide:
+- Plant maintenance.
+- Seed collection when appropriate.
+- Crop rotation.
+- Media reuse considerations.
+- Composting plant residues when safe.
+- Next cultivation cycle.
+
+## Cultivation guide UI
+
+Use a step-by-step visual timeline.
+
+Each stage should contain:
+- Illustration or photo.
+- Stage title.
+- Estimated duration.
+- Checklist.
+- Practical instructions.
+- Common mistakes.
+- Troubleshooting shortcut.
+
+Allow users to mark completed tasks.
+
+---
+
+# 10. ORGANIC CULTIVATION KNOWLEDGE BASE
+
+For organic cultivation, recommendations should prioritize:
+
+- Compost.
+- Mature organic manure.
+- Organic growing media.
+- Soil health.
+- Mulching.
+- Biological pest control.
+- Mechanical pest control.
+- Sanitation.
+- Crop rotation where relevant.
+- Natural predators.
+- Suitable biological agents.
+- Appropriate organic fertilizer.
+
+Do not recommend fresh manure directly around sensitive roots.
+
+Do not assume every natural substance is safe.
+
+Avoid recommending homemade pesticide mixtures as proven treatments unless there is reliable evidence and appropriate safety information.
+
+For each organic solution, provide:
+
+- Material name.
+- Purpose.
+- How to apply.
+- Suitable growth stage.
+- Application frequency.
+- Important precautions.
+- Expected response.
+- Scientific or technical reference.
+- Validation status.
+
+Distinguish:
+- Research-supported.
+- Expert-reviewed.
+- Field-tested.
+- Experimental.
+- General recommendation.
+
+---
+
+# 11. NON-ORGANIC CULTIVATION KNOWLEDGE BASE
+
+For non-organic cultivation, recommendations should prioritize:
+
+- Nutrient management.
+- Fertilizer selection.
+- Soil or media conditions.
+- Water management.
+- Integrated pest management.
+- Appropriate chemical control when needed.
+
+For fertilizer recommendations, provide:
+
+- Fertilizer type.
+- Nutrient composition.
+- Application method.
+- Application timing.
+- Appropriate dosage only when supported by reliable crop-specific guidance.
+- Precautions.
+- Compatibility considerations.
+
+Do not automatically recommend NPK for every yellow leaf problem.
+
+Do not recommend excessive fertilizer.
+
+For pesticides:
+- Use only products registered and authorized for the relevant crop and target pest.
+- Verify label instructions.
+- Include PPE requirements.
+- Include withholding period when applicable and supported.
+- Include re-entry requirements when applicable and supported.
+- Explain environmental precautions.
+- Do not invent product names or dosage.
+
+When reliable pesticide information is unavailable, recommend consulting a qualified agricultural professional.
+
+---
+
+# 12. AI PLANT DOCTOR — CORE FEATURE
+
+Create a dedicated module called:
+
+"Dokter Tanaman AI"
+
+This must be one of the most important application features.
+
+## Plant Doctor page
+
+Display:
+
+- Selected plant.
+- Plant photograph.
+- Current cultivation method.
+- Current growth stage.
+- Button "Periksa Kondisi Tanaman".
+- Button "Lihat Riwayat Diagnosis".
+
+## Photo examination workflow
+
+The user must be able to:
+
+1. Select a plant from My Garden.
+2. Take a new photo.
+3. Upload a photo from the gallery.
+4. Select the photo type:
+   - Whole plant.
+   - Leaf.
+   - Stem.
+   - Root.
+   - Flower.
+   - Fruit.
+5. Enter optional symptom descriptions.
+6. Submit the image for AI analysis.
+
+## Additional diagnostic questions
+
+Before making treatment recommendations, AI should ask relevant questions when needed:
+
+- How long has the symptom appeared?
+- Which leaves are affected?
+- Is the symptom spreading?
+- Is the growing media wet or dry?
+- When was the last watering?
+- When was the last fertilization?
+- Has the plant recently been exposed to extreme heat?
+- Are insects visible?
+- Has a treatment already been applied?
+
+Do not ask all questions every time.
+
+Only ask questions that materially improve the diagnosis.
+
+---
+
+# 13. AI PLANT DIAGNOSIS ENGINE
+
+Implement a structured diagnosis system.
+
+AI must distinguish:
+
+1. Visual observations.
+2. Possible causes.
+3. Additional evidence needed.
+4. Recommended actions.
+5. Confidence level.
+6. Risk level.
+
+## Diagnosis result page
+
+Display the following sections:
+
+### A. Condition summary
+
+Example:
+
+"Daun cabai menunjukkan gejala menguning pada sebagian daun bagian bawah."
+
+### B. Plant health status
+
+Use:
+- Sehat.
+- Perlu perhatian.
+- Bermasalah.
+- Perlu pemeriksaan lanjutan.
+
+### C. Possible causes
+
+Show up to three possible causes.
+
+Example:
+1. Media terlalu lembap.
+2. Kekurangan unsur hara tertentu.
+3. Gangguan akar.
+
+Each cause must include:
+- Why it is suspected.
+- Evidence supporting the hypothesis.
+- Evidence that is still missing.
+
+### D. Confidence
+
+Display:
+- Low confidence.
+- Moderate confidence.
+- High confidence.
+
+Confidence must reflect evidence quality, not merely model certainty.
+
+### E. Risk
+
+Display:
+- Low.
+- Moderate.
+- High.
+- Urgent.
+
+Urgent should be used only for genuine serious conditions or safety risks.
+
+### F. Recommended action
+
+Provide practical instructions in numbered steps.
+
+Example:
+
+1. Check growing media moisture.
+2. Inspect drainage.
+3. Observe root condition if appropriate.
+4. Avoid additional fertilizer until root and moisture conditions are evaluated.
+5. Photograph the plant again after the recommended monitoring period.
+
+### G. Monitoring
+
+Provide:
+- Recommended follow-up period.
+- Expected signs of improvement.
+- Warning signs.
+- Button "Jadwalkan Pemeriksaan Ulang".
+
+## Diagnosis safety rules
+
+Never:
+- Diagnose a specific disease with certainty from an ambiguous photo.
+- Recommend fertilizer without considering the plant condition.
+- Recommend pesticides as the default treatment.
+- Invent a chemical dosage.
+- Ignore environmental conditions.
+- Treat every yellow leaf as nitrogen deficiency.
+- Treat every wilted plant as dehydration.
+
+When diagnosis is uncertain:
+"Belum cukup bukti untuk menentukan penyebab secara pasti. Silakan ambil foto tambahan dan lakukan pemeriksaan berikut."
+
+---
+
+# 14. PLANT HEALTH MONITORING
+
+Create a photo-based plant monitoring system.
+
+Users should be able to photograph plants periodically.
+
+## Monitoring functions
+
+- Save plant photos by date.
+- Compare current and previous photographs.
+- Track symptom changes.
+- Track new leaf development.
+- Track flowering.
+- Track fruiting.
+- Track growth stage.
+- Track treatment effectiveness.
+
+## Photo timeline
+
+Create a visual timeline:
+
+10 Nov — Seedling
+
+17 Nov — Vegetative growth
+
+24 Nov — New leaves
+
+01 Dec — Flowering
+
+08 Dec — Fruit development
+
+The dates must come from actual user records or explicitly labeled sample data.
+
+## Before-and-after comparison
+
+Create a photo comparison interface.
+
+Allow:
+- Side-by-side comparison.
+- Date selection.
+- Slider comparison if feasible.
+- AI summary of visible changes.
+
+AI should compare visible characteristics only and avoid inventing measurements.
+
+---
+
+# 15. TREATMENT EFFECTIVENESS TRACKING
+
+After a diagnosis, create a treatment plan.
+
+Treatment plan must include:
+
+- Problem.
+- Suspected cause.
+- Recommended treatment.
+- Treatment date.
+- Follow-up date.
+- Expected response.
+- Status.
+
+Status options:
+- Belum dilakukan.
+- Sedang dilakukan.
+- Menunggu evaluasi.
+- Membaik.
+- Tidak berubah.
+- Memburuk.
+- Selesai.
+
+When the user reports that treatment failed:
+- Reassess the diagnosis.
+- Ask whether instructions were followed.
+- Request new photographs.
+- Consider alternative causes.
+- Avoid simply repeating the same treatment.
+
+When the user reports improvement:
+- Record the outcome.
+- Update treatment history.
+- Continue appropriate monitoring.
+
+---
+
+# 16. MY GARDEN MODULE
+
+Create a personalized digital garden.
+
+## Garden overview
+
+Display:
+- Total plants.
+- Healthy plants.
+- Plants needing attention.
+- Plants currently growing.
+- Plants flowering.
+- Plants fruiting.
+
+## Plant cards
+
+Each plant card should display:
+
+- Plant photo.
+- Plant name.
+- Nickname.
+- Growth stage.
+- Cultivation method.
+- Health status.
+- Last examination date.
+- Next care activity.
+
+Example:
+
+Cabai Rawit
+
+Method: Organik
+
+Stage: Vegetative
+
+Status: Healthy
+
+Next task: Monitoring
+
+## Garden functions
+
+Users can:
+- Add plant manually.
+- Identify plant from photo.
+- Edit plant information.
+- Delete plant with confirmation.
+- Search plants.
+- Filter by health.
+- Filter by cultivation method.
+- Filter by growth stage.
+- Sort by care schedule.
+
+---
+
+# 17. CARE CALENDAR & REMINDERS
+
+Create a personalized plant care calendar.
+
+Functions:
+- Watering reminders.
+- Fertilization reminders.
+- Pruning reminders.
+- Pest inspection.
+- Diagnosis follow-up.
+- Harvest estimation.
+- Growth milestone reminders.
+
+Important:
+Do not create universal watering schedules.
+
+Watering must depend on:
+- Plant species.
+- Growing media.
+- Container size.
+- Environmental conditions.
+- Weather.
+- Growth stage.
+- Actual media moisture.
+
+Provide reminders as adjustable suggestions.
+
+Users can:
+- Mark completed.
+- Snooze.
+- Reschedule.
+- Skip.
+- Edit frequency.
+
+If notification permission is unavailable, show reminders inside the application.
+
+---
+
+# 18. INITIAL PLANT DATABASE
+
+Create a sample knowledge base for the following 20 plants:
+
+1. Cabai.
+2. Tomat.
+3. Terong.
+4. Kangkung.
+5. Bayam.
+6. Sawi.
+7. Pakcoy.
+8. Selada.
+9. Bawang merah.
+10. Bawang putih.
+11. Timun.
+12. Pare.
+13. Kacang panjang.
+14. Kacang tanah.
+15. Jagung.
+16. Melon.
+17. Semangka.
+18. Pepaya.
+19. Pisang.
+20. Jeruk.
+
+Each plant must contain:
+
+- Common name.
+- Scientific name.
+- Plant category.
+- Basic characteristics.
+- Suitable planting environment.
+- Sunlight requirement.
+- Growing media.
+- Watering principles.
+- Growth stages.
+- Cultivation guide.
+- Organic cultivation recommendations.
+- Non-organic cultivation recommendations.
+- Common problems.
+- Diagnosis guide.
+- Monitoring recommendations.
+- References.
+
+Use structured data.
+
+Do not create 20 identical generic profiles.
+
+Plant-specific information must be accurate and appropriate.
+
+---
+
+# 19. INITIAL PLANT PROBLEM DATABASE
+
+Build a structured starter knowledge base containing at least 100 plant problem entries across the initial 20 crops.
+
+Prioritize common issues such as:
+
+- Yellow leaves.
+- Wilting.
+- Leaf spots.
+- Leaf curling.
+- Stunted growth.
+- Root rot.
+- Nutrient deficiency symptoms.
+- Sunburn.
+- Water stress.
+- Aphids.
+- Thrips.
+- Whiteflies.
+- Caterpillars.
+- Mites.
+- Fungal diseases.
+- Bacterial diseases.
+- Viral symptoms.
+- Flower drop.
+- Fruit cracking.
+- Blossom-end rot.
+- Poor germination.
+- Excessive vegetative growth.
+- Poor fruit development.
+
+Each problem record must contain:
+
+- Problem ID.
+- Crop applicability.
+- Symptom description.
+- Visual indicators.
+- Possible causes.
+- Diagnostic questions.
+- Distinguishing features.
+- Organic treatment options.
+- Non-organic treatment options.
+- Preventive actions.
+- Follow-up schedule.
+- Expected response.
+- Reference source.
+- Evidence level.
+- Validation status.
+
+Do not fabricate detailed disease-specific treatment recommendations.
+
+If data is unavailable, clearly mark:
+"Belum tersedia rekomendasi tervalidasi."
+
+---
+
+# 20. AI SYSTEM ARCHITECTURE
+
+Use Google Gemini as the AI engine.
+
+The application should support:
+- Plant identification.
+- Visual symptom analysis.
+- Diagnosis assistance.
+- Cultivation guidance.
+- Question answering.
+- Treatment plan generation.
+- Photo comparison.
+- Personalized recommendations.
+
+## AI integration requirements
+
+Use a secure backend for production.
+
+Do not expose Gemini API keys in client-side code.
+
+Recommended architecture:
+
+Frontend:
+React + TypeScript.
+
+Backend:
+Firebase Cloud Functions or another secure server environment.
+
+AI:
+Gemini API with image input and structured output.
+
+Database:
+Cloud Firestore.
+
+Image storage:
+Firebase Storage.
+
+Authentication:
+Firebase Authentication.
+
+## AI response format
+
+Use structured JSON responses.
+
+Example:
+
+{
+  "plant_name": "Cabai",
+  "scientific_name": "Capsicum annuum",
+  "health_status": "needs_attention",
+  "visual_observations": [
+    "Daun bagian bawah tampak menguning"
+  ],
+  "possible_causes": [
+    {
+      "cause": "Media terlalu lembap",
+      "confidence": "moderate",
+      "evidence": "Gejala menguning disertai media yang basah",
+      "additional_check": "Periksa drainase dan kondisi akar"
+    }
+  ],
+  "risk_level": "moderate",
+  "recommended_actions": [
+    "Periksa kelembapan media",
+    "Pastikan drainase berjalan baik"
+  ],
+  "follow_up_days": 3,
+  "limitations": [
+    "Diagnosis belum dapat dipastikan hanya dari foto"
+  ]
+}
+
+Use schema validation.
+
+Handle:
+- Invalid JSON.
+- Empty response.
+- API failure.
+- Timeout.
+- Rate limit.
+- Unsupported image.
+- Low confidence.
+
+Provide user-friendly error messages.
+
+---
+
+# 21. AI PLANT DOCTOR SYSTEM PROMPT
+
+Use the following system instruction for the plant diagnosis AI:
+
+"You are Plant Doctor AI, an agricultural assistant specializing in horticulture, plant cultivation, plant health monitoring, and preliminary plant disease diagnosis.
+
+Your objective is to help users cultivate plants successfully using safe, practical, scientifically supported recommendations.
+
+You must:
+
+1. Analyze plant photographs carefully.
+2. Describe visible symptoms objectively.
+3. Separate visual observations from diagnostic hypotheses.
+4. Consider multiple possible causes.
+5. Ask additional diagnostic questions when needed.
+6. Consider plant species, growth stage, cultivation method, environmental conditions, watering, and fertilization history.
+7. Never claim certainty without sufficient evidence.
+8. Never invent scientific references.
+9. Never invent fertilizer or pesticide dosages.
+10. Prioritize prevention and integrated pest management.
+11. Respect the selected cultivation method.
+12. Provide organic recommendations for organic users.
+13. Provide conventional recommendations for non-organic users.
+14. Provide balanced recommendations for combined-method users.
+15. Explain the reason behind each recommended action.
+16. Include relevant precautions.
+17. Provide follow-up and monitoring instructions.
+18. Explain when a qualified agricultural professional is needed.
+19. Use Bahasa Indonesia that is simple, friendly, and understandable.
+20. Do not overwhelm users with unnecessary technical information.
+
+Your responses must be practical, structured, evidence-aware, and transparent about uncertainty.
+
+When the available information is insufficient, explain what additional information is needed instead of guessing."
+
+---
+
+# 22. KNOWLEDGE BASE VALIDATION
+
+Create a knowledge base administration structure.
+
+Each recommendation must have:
+
+- Reference title.
+- Source institution.
+- Source URL or publication identifier.
+- Publication year if available.
+- Crop applicability.
+- Recommendation category.
+- Evidence level.
+- Expert reviewer.
+- Validation date.
+- Last review date.
+
+Evidence categories:
+
+A. Official technical guidance.
+
+B. Peer-reviewed research.
+
+C. Expert-reviewed recommendation.
+
+D. Field-tested recommendation.
+
+E. Experimental recommendation.
+
+F. General AI suggestion.
+
+Clearly distinguish these categories.
+
+Do not label a recommendation "teruji" unless it has actual supporting test records.
+
+---
+
+# 23. USER EXPERIENCE & PERSONALIZATION
+
+Create an optional onboarding process.
+
+Ask:
+- Are you a beginner or experienced grower?
+- What type of gardening do you do?
+- Home garden or agricultural land?
+- Which plants do you want to grow?
+- Preferred cultivation method?
+- Do you want care reminders?
+
+Allow users to skip onboarding.
+
+Use the answers to personalize the dashboard.
+
+Do not force users to fill extensive forms.
+
+---
+
+# 24. AUTHENTICATION & DATA STORAGE
+
+Implement:
+- Google sign-in.
+- Email sign-in if supported.
+- Guest/demo mode.
+- User profile.
+- My Garden persistence.
+- Plant photo storage.
+- Diagnosis history.
+- Treatment history.
+- Care calendar.
+
+Use Firebase where possible.
+
+Provide a demo mode for testing.
+
+All user data must be associated with the correct user.
+
+Users must not access other users' plant records.
+
+---
+
+# 25. DATABASE STRUCTURE
+
+Create a practical Firestore schema.
+
+Suggested collections:
+
+users
+
+plants
+
+plant_knowledge
+
+cultivation_guides
+
+plant_problems
+
+diagnoses
+
+treatment_plans
+
+care_tasks
+
+growth_photos
+
+references
+
+Example plant record:
+
+{
+  "plantId": "plant_001",
+  "userId": "user_001",
+  "plantName": "Cabai Rawit",
+  "nickname": "Cabai Rumah",
+  "scientificName": "Capsicum annuum",
+  "cultivationMethod": "organic",
+  "plantingLocation": "polybag",
+  "plantingDate": "2026-11-10",
+  "growthStage": "vegetative",
+  "healthStatus": "healthy",
+  "imageUrl": "",
+  "createdAt": "",
+  "updatedAt": ""
+}
+
+Example diagnosis record:
+
+{
+  "diagnosisId": "diag_001",
+  "plantId": "plant_001",
+  "imageUrl": "",
+  "observations": [],
+  "possibleCauses": [],
+  "confidence": "moderate",
+  "riskLevel": "low",
+  "recommendedActions": [],
+  "cultivationMethod": "organic",
+  "followUpDate": "",
+  "status": "pending",
+  "createdAt": ""
+}
+
+Use appropriate Firestore security rules.
+
+---
+
+# 26. ADDITIONAL FEATURE: AI CHAT PLANT ASSISTANT
+
+Create a conversational AI assistant.
+
+Name:
+"Ask Plant AI"
+
+Users can ask:
+
+- Bagaimana cara menanam cabai?
+- Mengapa daun tomat saya menguning?
+- Kapan tanaman saya perlu dipupuk?
+- Bagaimana cara membuat kompos?
+- Apa penyebab daun terong keriting?
+- Bagaimana cara mengatasi kutu daun secara organik?
+
+The assistant should:
+- Understand the current selected plant.
+- Understand its cultivation method.
+- Use plant profile information.
+- Use diagnosis history.
+- Use the validated knowledge base.
+- Provide contextual answers.
+
+Do not treat general chat responses as verified agricultural recommendations.
+
+---
+
+# 27. SAMPLE DATA & DEMO MODE
+
+Create realistic demo data for:
+
+- Cabai Rawit.
+- Tomat.
+- Pakcoy.
+
+Provide sample:
+- Plant profiles.
+- Cultivation methods.
+- Growth stages.
+- Diagnosis history.
+- Treatment history.
+- Care tasks.
+- Growth photos.
+
+Include a sample diagnosis:
+
+Plant:
+Cabai Rawit.
+
+Symptom:
+Yellowing lower leaves.
+
+Possible causes:
+- Watering problem.
+- Nutrient deficiency.
+- Root condition.
+
+Treatment:
+Check growing media moisture, drainage, and root health before applying additional fertilizer.
+
+Monitoring:
+3 days.
+
+This must be labeled:
+"Contoh data simulasi".
+
+Never represent sample data as real user observations.
+
+---
+
+# 28. DESIGN DETAILS FOR EACH PAGE
+
+Create the following pages:
+
+1. Splash screen.
+2. Onboarding.
+3. Home dashboard.
+4. Plant identification camera.
+5. Identification loading screen.
+6. Identification result.
+7. Cultivation method selection.
+8. Cultivation guide.
+9. Plant profile.
+10. My Garden.
+11. Plant Doctor.
+12. Diagnosis result.
+13. Treatment plan.
+14. Growth monitoring.
+15. Photo comparison.
+16. Care calendar.
+17. AI Plant Chat.
+18. Knowledge base article.
+19. User profile.
+20. Settings.
+
+All pages must have consistent visual design.
+
+Provide loading states, empty states, error states, and success states.
+
+---
+
+# 29. MICROCOPY & USER LANGUAGE
+
+Use friendly Indonesian.
+
+Examples:
+
+"Yuk, kenali tanamanmu."
+
+"Tanamanmu terlihat membutuhkan perhatian."
+
+"Belum cukup bukti untuk memastikan penyebabnya."
+
+"Coba ambil foto bagian bawah daun agar analisis lebih akurat."
+
+"Periksa kelembapan media sebelum menambah air."
+
+"Tanaman menunjukkan tanda perbaikan."
+
+"Belum ada perubahan. Mari kita evaluasi kembali."
+
+"Rekomendasi ini merupakan diagnosis awal, bukan kepastian penyakit."
+
+Avoid overly technical agricultural language unless accompanied by explanations.
+
+---
+
+# 30. FUNCTIONAL REQUIREMENTS
+
+The following functions must work:
+
+- Navigation.
+- Camera capture.
+- Image upload.
+- Image preview.
+- AI identification.
+- AI image diagnosis.
+- Plant profile creation.
+- Plant profile editing.
+- My Garden.
+- Cultivation method selection.
+- Cultivation guide navigation.
+- Care task creation.
+- Care task completion.
+- Plant photo history.
+- Diagnosis history.
+- Treatment plan.
+- Treatment outcome reporting.
+- AI chat.
+- Data persistence.
+- User authentication when configured.
+- Responsive layout.
+
+Use reusable components.
+
+Avoid unnecessary duplication.
+
+---
+
+# 31. DEVELOPMENT PRIORITIES
+
+Develop the application in phases.
+
+## PHASE 1 — MVP
+
+Prioritize:
+- Home dashboard.
+- Plant identification.
+- Plant profile.
+- My Garden.
+- Organic/non-organic method selection.
+- Cultivation guide.
+- Photo-based Plant Doctor.
+- Diagnosis results.
+- Treatment plan.
+- Photo history.
+
+## PHASE 2
+
+Add:
+- Advanced monitoring.
+- Photo comparison.
+- Care calendar.
+- Notifications.
+- Treatment effectiveness analytics.
+- AI chat.
+
+## PHASE 3
+
+Add:
+- Larger plant database.
+- Expert-validated knowledge base.
+- More sophisticated diagnosis.
+- Weather-aware recommendations.
+- Advanced agricultural monitoring.
+- Community knowledge features.
+
+Do not delay the MVP by trying to implement every advanced feature simultaneously.
+
+---
+
+# 32. FINAL DEVELOPMENT INSTRUCTIONS
+
+Now begin building the application.
+
+Start with:
+
+1. Establish the visual design system.
+2. Create the complete application navigation.
+3. Build the Home Dashboard.
+4. Build the Plant Identification flow.
+5. Build the Plant Profile.
+6. Build the Cultivation Method Selection.
+7. Build the Cultivation Guide.
+8. Build the Plant Doctor workflow.
+9. Build the Diagnosis Result page.
+10. Build My Garden and photo monitoring.
+11. Implement data persistence.
+12. Integrate Gemini where possible.
+13. Add demo mode.
+14. Test all navigation and interactions.
+15. Fix errors.
+16. Verify responsive behavior on mobile.
+
+Do not stop at a static design.
+
+Generate a functional application with real interaction.
+
+If full backend integration cannot be completed in the current environment, clearly identify the missing integrations and provide a working local/demo implementation.
+
+Make all important buttons functional.
+
+Use realistic plant photographs and polished UI components.
+
+Prioritize usability, visual quality, agricultural accuracy, and maintainable code.
+
+The final product should look and feel like a premium, modern plant-care application ready for further development and deployment.
+
+**Build Kenali Tanaman 2.0 now.**
