@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # Diperlukan agar GitHub Actions bisa membuat Release otomatis
+  contents: write
 
 jobs:
   build:
@@ -23,14 +23,36 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Inject API Key ke local.properties
+      - name: Inject API Key ke Semua Konfigurasi (local.properties, .env, & Kode)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> local.properties
-          echo "apiKey=$GEMINI_API_KEY" >> local.properties
+          # Bersihkan spasi/baris baru yang tidak sengaja ikut ter-copy
+          CLEAN_KEY=$(echo "$GEMINI_API_KEY" | tr -d '[:space:]')
+          
+          if [ -z "$CLEAN_KEY" ]; then
+            echo "::error::GEMINI_API_KEY kosong! Pastikan sudah diatur di Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
 
-      - name: Generate debug.keystore (Mengatasi Error Keystore)
+          # 1. Tulis ke local.properties, gradle.properties, dan .env
+          for FILE in local.properties gradle.properties .env app/.env; do
+            echo "GEMINI_API_KEY=$CLEAN_KEY" >> $FILE
+            echo "API_KEY=$CLEAN_KEY" >> $FILE
+            echo "GOOGLE_API_KEY=$CLEAN_KEY" >> $FILE
+            echo "VITE_GEMINI_API_KEY=$CLEAN_KEY" >> $FILE
+            echo "apiKey=$CLEAN_KEY" >> $FILE
+            echo "geminiApiKey=$CLEAN_KEY" >> $FILE
+          done
+
+          # 2. Ganti placeholder API Key jika ada yang di-hardcode di kode Kotlin / Gradle
+          find app/ -type f \( -name "*.kt" -o -name "*.kts" -o -name "*.xml" \) -exec sed -i \
+            -e "s/YOUR_API_KEY/$CLEAN_KEY/g" \
+            -e "s/YOUR_GEMINI_API_KEY/$CLEAN_KEY/g" \
+            -e "s/PLACEHOLDER_API_KEY/$CLEAN_KEY/g" \
+            -e "s/\"GEMINI_API_KEY\", \"\"/\"GEMINI_API_KEY\", \"\\\\\"$CLEAN_KEY\\\\\"\"/g" {} +
+
+      - name: Generate debug.keystore
         run: |
           if [ ! -f "debug.keystore" ]; then
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
@@ -38,17 +60,19 @@ jobs:
           mkdir -p ~/.android
           cp debug.keystore ~/.android/debug.keystore
 
-      - name: Siapkan google-services.json & Web Client ID (Mengatasi Error Firebase)
+      - name: Siapkan google-services.json dengan API Key Asli
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          CLEAN_KEY=$(echo "$GEMINI_API_KEY" | tr -d '[:space:]')
           if [ ! -f "app/google-services.json" ]; then
             PKG_NAME=$(grep -oP 'applicationId\s*=\s*"\K[^"]+' app/build.gradle.kts || grep -oP 'namespace\s*=\s*"\K[^"]+' app/build.gradle.kts || echo "com.example.app")
-            echo "Membuat google-services.json untuk package: $PKG_NAME"
             cat <<EOF > app/google-services.json
           {
             "project_info": {
               "project_number": "123456789012",
-              "project_id": "dummy-project-id",
-              "storage_bucket": "dummy-project-id.appspot.com"
+              "project_id": "gen-lang-client-0149877899",
+              "storage_bucket": "gen-lang-client-0149877899.appspot.com"
             },
             "client": [
               {
@@ -66,7 +90,7 @@ jobs:
                 ],
                 "api_key": [
                   {
-                    "current_key": "AIzaSyDummyKeyForBuildOnly123456789"
+                    "current_key": "$CLEAN_KEY"
                   }
                 ],
                 "services": {
@@ -94,6 +118,8 @@ jobs:
           chmod +x gradlew
 
       - name: Build Debug APK
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: ./gradlew assembleDebug --stacktrace
 
       - name: Rename File APK
