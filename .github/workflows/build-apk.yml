@@ -1,0 +1,44 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Memungkinkan trigger manual dari tab Actions
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Inject API Key ke local.properties
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> local.properties
+          echo "apiKey=$GEMINI_API_KEY" >> local.properties
+
+      - name: Buat Gradle Wrapper (Jika belum ada di repo)
+        run: |
+          if [ ! -f "./gradlew" ]; then
+            gradle wrapper
+          fi
+          chmod +x gradlew
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload File APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kenali-tanaman-2.0-debug
+          path: app/build/outputs/apk/debug/*.apk
