@@ -11,6 +11,7 @@ import com.example.model.GrowthStage
 import com.example.model.HealthStatus
 import com.google.firebase.Firebase
 import com.google.firebase.ai.ai
+import com.google.firebase.ai.type.GenerativeBackend
 import com.google.firebase.ai.type.Schema
 import com.google.firebase.ai.type.content
 import com.google.firebase.ai.type.generationConfig
@@ -69,10 +70,10 @@ When the available information is insufficient, explain what additional informat
                 "visible_characteristics" to Schema.array(Schema.string(), "Objective visible plant traits"),
                 "description" to Schema.string("Friendly simple Indonesian description of the plant"),
                 "benefits_or_uses" to Schema.string("Practical culinary, household, or agricultural benefits"),
-                "toxicity_warning" to Schema.string("Toxicity note if relevant, or empty string if safe/none", nullable = true),
+                "toxicity_warning" to Schema.string("Toxicity note if relevant, or empty string if safe/none"),
                 "cultivation_suitability" to Schema.string("Suitability for polybag, pot, or open soil in Indonesia"),
                 "possible_matches" to Schema.array(Schema.string(), "Top alternative matches when confidence is low/moderate"),
-                "photo_retake_advice" to Schema.string("Advice for better photo if needed", nullable = true)
+                "photo_retake_advice" to Schema.string("Advice for better photo if needed, or empty string if clear")
             ),
             optionalProperties = listOf("toxicity_warning", "photo_retake_advice")
         )
@@ -113,8 +114,16 @@ When the available information is insufficient, explain what additional informat
         )
     }
 
+    private val aiClient by lazy {
+        Firebase.ai(backend = GenerativeBackend.googleAI())
+    }
+
+    private val vertexAiClient by lazy {
+        Firebase.ai(backend = GenerativeBackend.vertexAI("global"))
+    }
+
     private val identificationModel by lazy {
-        Firebase.ai.generativeModel(
+        aiClient.generativeModel(
             modelName = MODEL_NAME,
             generationConfig = generationConfig {
                 responseMimeType = "application/json"
@@ -123,8 +132,27 @@ When the available information is insufficient, explain what additional informat
         )
     }
 
+    private val identificationVertexFallbackModel by lazy {
+        vertexAiClient.generativeModel(
+            modelName = MODEL_NAME,
+            generationConfig = generationConfig {
+                responseMimeType = "application/json"
+                responseSchema = identificationSchema
+            }
+        )
+    }
+
+    private val identificationJsonFallbackModel by lazy {
+        aiClient.generativeModel(
+            modelName = MODEL_NAME,
+            generationConfig = generationConfig {
+                responseMimeType = "application/json"
+            }
+        )
+    }
+
     private val diagnosisModel by lazy {
-        Firebase.ai.generativeModel(
+        aiClient.generativeModel(
             modelName = MODEL_NAME,
             generationConfig = generationConfig {
                 responseMimeType = "application/json"
@@ -134,8 +162,29 @@ When the available information is insufficient, explain what additional informat
         )
     }
 
+    private val diagnosisVertexFallbackModel by lazy {
+        vertexAiClient.generativeModel(
+            modelName = MODEL_NAME,
+            generationConfig = generationConfig {
+                responseMimeType = "application/json"
+                responseSchema = diagnosisSchema
+            },
+            systemInstruction = content { text(PLANT_DOCTOR_SYSTEM_PROMPT) }
+        )
+    }
+
+    private val diagnosisJsonFallbackModel by lazy {
+        aiClient.generativeModel(
+            modelName = MODEL_NAME,
+            generationConfig = generationConfig {
+                responseMimeType = "application/json"
+            },
+            systemInstruction = content { text(PLANT_DOCTOR_SYSTEM_PROMPT) }
+        )
+    }
+
     private val generalTextModel by lazy {
-        Firebase.ai.generativeModel(
+        aiClient.generativeModel(
             modelName = MODEL_NAME,
             systemInstruction = content { text(PLANT_DOCTOR_SYSTEM_PROMPT) }
         )
@@ -154,32 +203,50 @@ When the available information is insufficient, explain what additional informat
                 - Jika foto kurang jelas atau keyakinan tidak tinggi, sertakan kemungkinan kecocokan lain dan saran pengambilan foto ulang (misalnya foto daun, bunga, atau buah).
             """.trimIndent()
 
-            val response = withTimeout(60_000L) {
-                identificationModel.generateContent(
-                    content {
-                        image(scaled)
-                        text(promptText)
+            val response = try {
+                withTimeout(60_000L) {
+                    identificationModel.generateContent(
+                        content {
+                            image(scaled)
+                            text(promptText)
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                when {
+                    shouldFallbackToAlternateBackend(e) -> {
+                        Log.w(TAG, "Primary AI backend rejected request, retrying with Vertex AI backend", e)
+                        withTimeout(60_000L) {
+                            identificationVertexFallbackModel.generateContent(
+                                content {
+                                    image(scaled)
+                                    text(promptText)
+                                }
+                            )
+                        }
                     }
-                )
+                    shouldRetryWithoutStrictSchema(e) -> {
+                        Log.w(TAG, "Schema identification failed, retrying in JSON mode", e)
+                        withTimeout(60_000L) {
+                            identificationJsonFallbackModel.generateContent(
+                                content {
+                                    image(scaled)
+                                    text(
+                                        "$promptText\n\nKembalikan HANYA objek JSON valid dengan kunci: " +
+                                            "common_name, scientific_name, local_names (array), category, " +
+                                            "confidence (low|moderate|high), visible_characteristics (array), " +
+                                            "description, benefits_or_uses, toxicity_warning, " +
+                                            "cultivation_suitability, possible_matches (array), photo_retake_advice."
+                                    )
+                                }
+                            )
+                        }
+                    }
+                    else -> throw e
+                }
             }
             val rawJson = response.text ?: throw IllegalStateException("AI mengembalikan respons kosong.")
-            val json = JSONObject(rawJson)
-
-            val result = AiIdentificationResult(
-                commonName = json.optString("common_name", "Tanaman Belum Dikenali"),
-                scientificName = json.optString("scientific_name", "-"),
-                localNames = json.optJSONArray("local_names").toStringList(),
-                category = json.optString("category", "Umum"),
-                confidence = json.optString("confidence", "low"),
-                visibleCharacteristics = json.optJSONArray("visible_characteristics").toStringList(),
-                description = json.optString("description", "Belum cukup ciri visual untuk deskripsi rinci."),
-                benefitsOrUses = json.optString("benefits_or_uses", "-"),
-                toxicityWarning = json.optString("toxicity_warning").takeIf { it.isNotBlank() && it != "null" },
-                cultivationSuitability = json.optString("cultivation_suitability", "Perlu pemeriksaan lokasi tanam."),
-                possibleMatches = json.optJSONArray("possible_matches").toStringList(),
-                photoRetakeAdvice = json.optString("photo_retake_advice").takeIf { it.isNotBlank() && it != "null" }
-            )
-            Result.success(result)
+            Result.success(parseIdentificationJson(rawJson))
         } catch (e: TimeoutCancellationException) {
             Log.e(TAG, "Plant identification timed out", e)
             Result.failure(Exception("Analisis foto melebihi batas waktu 60 detik. Periksa koneksi lalu coba lagi."))
@@ -226,57 +293,59 @@ When the available information is insufficient, explain what additional informat
                 5. Jika belum cukup bukti atau tidak ada foto, nyatakan ketidakpastian secara transparan.
             """.trimIndent()
 
-            val response = withTimeout(60_000L) {
-                diagnosisModel.generateContent(
-                    content {
-                        if (bitmap != null) {
-                            image(scaleBitmapForUpload(bitmap))
+            val scaledBitmap = bitmap?.let { scaleBitmapForUpload(it) }
+            val response = try {
+                withTimeout(60_000L) {
+                    diagnosisModel.generateContent(
+                        content {
+                            if (scaledBitmap != null) {
+                                image(scaledBitmap)
+                            }
+                            text(promptText)
                         }
-                        text(promptText)
-                    }
-                )
-            }
-            val rawJson = response.text ?: throw IllegalStateException("AI mengembalikan respons kosong.")
-            val json = JSONObject(rawJson)
-
-            val causesArr = json.optJSONArray("possible_causes")
-            val causes = buildList {
-                if (causesArr != null) {
-                    for (i in 0 until causesArr.length().coerceAtMost(3)) {
-                        val obj = causesArr.optJSONObject(i) ?: continue
-                        add(
-                            AiPossibleCause(
-                                cause = obj.optString("cause", "Perlu pemeriksaan lanjut"),
-                                confidence = obj.optString("confidence", "low"),
-                                supportingEvidence = obj.optString("supporting_evidence", "-"),
-                                missingEvidence = obj.optString("missing_evidence", "-"),
-                                additionalCheck = obj.optString("additional_check", "-")
+                    )
+                }
+            } catch (e: Exception) {
+                when {
+                    shouldFallbackToAlternateBackend(e) -> {
+                        Log.w(TAG, "Primary diagnosis backend rejected request, retrying with Vertex AI backend", e)
+                        withTimeout(60_000L) {
+                            diagnosisVertexFallbackModel.generateContent(
+                                content {
+                                    if (scaledBitmap != null) {
+                                        image(scaledBitmap)
+                                    }
+                                    text(promptText)
+                                }
                             )
-                        )
+                        }
                     }
+                    shouldRetryWithoutStrictSchema(e) -> {
+                        Log.w(TAG, "Schema diagnosis failed, retrying in JSON mode", e)
+                        withTimeout(60_000L) {
+                            diagnosisJsonFallbackModel.generateContent(
+                                content {
+                                    if (scaledBitmap != null) {
+                                        image(scaledBitmap)
+                                    }
+                                    text(
+                                        "$promptText\n\nKembalikan HANYA objek JSON valid dengan kunci: " +
+                                            "plant_name, scientific_name, condition_summary, health_status " +
+                                            "(healthy|needs_attention|problem|follow_up), visual_observations (array), " +
+                                            "possible_causes (array of {cause, confidence, supporting_evidence, missing_evidence, additional_check}), " +
+                                            "confidence (low|moderate|high), risk_level (low|moderate|high|urgent), " +
+                                            "recommended_actions (array), follow_up_days (integer), expected_improvement, " +
+                                            "warning_signs, limitations (array), clarifying_questions (array)."
+                                    )
+                                }
+                            )
+                        }
+                    }
+                    else -> throw e
                 }
             }
-
-            val result = AiDiagnosisResult(
-                plantName = json.optString("plant_name", plantName),
-                scientificName = json.optString("scientific_name", scientificName),
-                conditionSummary = json.optString(
-                    "condition_summary",
-                    "Belum cukup bukti untuk menentukan penyebab secara pasti. Silakan ambil foto tambahan."
-                ),
-                healthStatus = HealthStatus.fromKey(json.optString("health_status", "follow_up")),
-                visualObservations = json.optJSONArray("visual_observations").toStringList(),
-                possibleCauses = causes,
-                confidence = json.optString("confidence", "low"),
-                riskLevel = json.optString("risk_level", "moderate"),
-                recommendedActions = json.optJSONArray("recommended_actions").toStringList(),
-                followUpDays = json.optInt("follow_up_days", 3).coerceIn(1, 30),
-                expectedImprovement = json.optString("expected_improvement", "Tunas baru terlihat segar dan gejala tidak meluas."),
-                warningSigns = json.optString("warning_signs", "Jika daun rontok parah atau batang membusuk, segera konsultasikan ke penyuluh pertanian."),
-                limitations = json.optJSONArray("limitations").toStringList(),
-                clarifyingQuestions = json.optJSONArray("clarifying_questions").toStringList()
-            )
-            Result.success(result)
+            val rawJson = response.text ?: throw IllegalStateException("AI mengembalikan respons kosong.")
+            Result.success(parseDiagnosisJson(rawJson, plantName, scientificName))
         } catch (e: TimeoutCancellationException) {
             Log.e(TAG, "Plant diagnosis timed out", e)
             Result.failure(Exception("Diagnosis melebihi batas waktu 60 detik. Silakan coba lagi."))
@@ -374,11 +443,112 @@ When the available information is insufficient, explain what additional informat
         }
     }
 
-    private fun scaleBitmapForUpload(bitmap: Bitmap): Bitmap {
+    internal fun parseIdentificationJson(rawJson: String): AiIdentificationResult {
+        val json = extractJsonObject(rawJson)
+        return AiIdentificationResult(
+            commonName = json.optString("common_name", "Tanaman Belum Dikenali"),
+            scientificName = json.optString("scientific_name", "-"),
+            localNames = json.optJSONArray("local_names").toStringList(),
+            category = json.optString("category", "Umum"),
+            confidence = json.optString("confidence", "low"),
+            visibleCharacteristics = json.optJSONArray("visible_characteristics").toStringList(),
+            description = json.optString("description", "Belum cukup ciri visual untuk deskripsi rinci."),
+            benefitsOrUses = json.optString("benefits_or_uses", "-"),
+            toxicityWarning = json.optString("toxicity_warning").takeIf { it.isNotBlank() && it != "null" },
+            cultivationSuitability = json.optString("cultivation_suitability", "Perlu pemeriksaan lokasi tanam."),
+            possibleMatches = json.optJSONArray("possible_matches").toStringList(),
+            photoRetakeAdvice = json.optString("photo_retake_advice").takeIf { it.isNotBlank() && it != "null" }
+        )
+    }
+
+    internal fun parseDiagnosisJson(
+        rawJson: String,
+        fallbackPlantName: String,
+        fallbackSciName: String
+    ): AiDiagnosisResult {
+        val json = extractJsonObject(rawJson)
+        val causesArr = json.optJSONArray("possible_causes")
+        val causes = buildList {
+            if (causesArr != null) {
+                for (i in 0 until causesArr.length().coerceAtMost(3)) {
+                    val obj = causesArr.optJSONObject(i) ?: continue
+                    add(
+                        AiPossibleCause(
+                            cause = obj.optString("cause", "Perlu pemeriksaan lanjut"),
+                            confidence = obj.optString("confidence", "low"),
+                            supportingEvidence = obj.optString("supporting_evidence", "-"),
+                            missingEvidence = obj.optString("missing_evidence", "-"),
+                            additionalCheck = obj.optString("additional_check", "-")
+                        )
+                    )
+                }
+            }
+        }
+
+        return AiDiagnosisResult(
+            plantName = json.optString("plant_name", fallbackPlantName),
+            scientificName = json.optString("scientific_name", fallbackSciName),
+            conditionSummary = json.optString(
+                "condition_summary",
+                "Belum cukup bukti untuk menentukan penyebab secara pasti. Silakan ambil foto tambahan."
+            ),
+            healthStatus = HealthStatus.fromKey(json.optString("health_status", "follow_up")),
+            visualObservations = json.optJSONArray("visual_observations").toStringList(),
+            possibleCauses = causes,
+            confidence = json.optString("confidence", "low"),
+            riskLevel = json.optString("risk_level", "moderate"),
+            recommendedActions = json.optJSONArray("recommended_actions").toStringList(),
+            followUpDays = json.optInt("follow_up_days", 3).coerceIn(1, 30),
+            expectedImprovement = json.optString("expected_improvement", "Tunas baru terlihat segar dan gejala tidak meluas."),
+            warningSigns = json.optString("warning_signs", "Jika daun rontok parah atau batang membusuk, segera konsultasikan ke penyuluh pertanian."),
+            limitations = json.optJSONArray("limitations").toStringList(),
+            clarifyingQuestions = json.optJSONArray("clarifying_questions").toStringList()
+        )
+    }
+
+    private fun extractJsonObject(rawText: String): JSONObject {
+        val trimmed = rawText.trim()
+        return try {
+            JSONObject(trimmed)
+        } catch (e: Exception) {
+            val start = trimmed.indexOf('{')
+            val end = trimmed.lastIndexOf('}')
+            if (start >= 0 && end > start) {
+                JSONObject(trimmed.substring(start, end + 1))
+            } else {
+                throw e
+            }
+        }
+    }
+
+    private fun shouldFallbackToAlternateBackend(e: Exception): Boolean {
+        if (e is CancellationException || e is TimeoutCancellationException) return false
+        val msg = "${e.message.orEmpty()} ${e.cause?.message.orEmpty()}".lowercase()
+        return msg.contains("api key not valid") ||
+            msg.contains("api_key_invalid") ||
+            msg.contains("genai config not found") ||
+            msg.contains("404")
+    }
+
+    private fun shouldRetryWithoutStrictSchema(e: Exception): Boolean {
+        if (e is CancellationException || e is TimeoutCancellationException) return false
+        val msg = "${e.message.orEmpty()} ${e.cause?.message.orEmpty()}".lowercase()
+        if (msg.contains("403") || msg.contains("401") || msg.contains("appcheck") || msg.contains("429") || msg.contains("quota")) {
+            return false
+        }
+        return msg.contains("schema") || msg.contains("400") || msg.contains("invalid_argument") || msg.contains("json")
+    }
+
+    internal fun scaleBitmapForUpload(bitmap: Bitmap): Bitmap {
+        val softwareBitmap = if (bitmap.config == Bitmap.Config.HARDWARE || bitmap.config != Bitmap.Config.ARGB_8888) {
+            bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: bitmap
+        } else {
+            bitmap
+        }
         val maxDim = 1024
-        val width = bitmap.width
-        val height = bitmap.height
-        if (width <= maxDim && height <= maxDim) return bitmap
+        val width = softwareBitmap.width.coerceAtLeast(1)
+        val height = softwareBitmap.height.coerceAtLeast(1)
+        if (width <= maxDim && height <= maxDim) return softwareBitmap
         val ratio = width.toFloat() / height.toFloat()
         val targetW: Int
         val targetH: Int
@@ -389,7 +559,7 @@ When the available information is insufficient, explain what additional informat
             targetH = maxDim
             targetW = (maxDim * ratio).toInt().coerceAtLeast(1)
         }
-        return Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
+        return Bitmap.createScaledBitmap(softwareBitmap, targetW, targetH, true)
     }
 
     private fun org.json.JSONArray?.toStringList(): List<String> {
@@ -400,15 +570,27 @@ When the available information is insufficient, explain what additional informat
     }
 
     private fun friendlyAiError(e: Exception): String {
-        val msg = e.localizedMessage.orEmpty()
+        val detail = listOfNotNull(
+            e.localizedMessage?.takeIf { it.isNotBlank() },
+            e.cause?.localizedMessage?.takeIf { it.isNotBlank() }
+        ).distinct().joinToString(" — ")
         return when {
-            msg.contains("403") || msg.contains("AppCheck", ignoreCase = true) ->
-                "Akses AI ditolak verifikasi App Check ($msg). Pastikan layanan Firebase AI Logic aktif."
-            msg.contains("429") || msg.contains("quota", ignoreCase = true) ->
+            detail.contains("API key not valid", ignoreCase = true) ||
+                detail.contains("API_KEY_INVALID", ignoreCase = true) ->
+                "API key Firebase tidak valid atau belum aktif untuk Firebase AI Logic ($detail). Pastikan Anda memasang build APK terbaru dan memeriksa API key project di Google Cloud Console / Firebase Console."
+            detail.contains("403") ||
+                detail.contains("AppCheck", ignoreCase = true) ||
+                detail.contains("App Check", ignoreCase = true) ->
+                "Akses AI ditolak verifikasi App Check / izin API ($detail). Pastikan layanan Firebase AI Logic & App Check aktif."
+            detail.contains("429") || detail.contains("quota", ignoreCase = true) ->
                 "Batas permintaan AI sementara tercapai. Silakan coba beberapa saat lagi."
-            msg.contains("Unable to resolve host", ignoreCase = true) || msg.contains("network", ignoreCase = true) ->
+            detail.contains("Unable to resolve host", ignoreCase = true) ||
+                detail.contains("UnknownHost", ignoreCase = true) ||
+                detail.contains("network", ignoreCase = true) ->
                 "Tidak dapat terhubung ke server AI. Periksa koneksi internet Anda."
-            else -> msg.ifBlank { "Gagal memproses permintaan AI." }
+            detail.contains("HARDWARE", ignoreCase = true) || detail.contains("compress", ignoreCase = true) ->
+                "Format foto tidak didukung untuk kompresi ($detail). Coba pilih foto lain."
+            else -> detail.ifBlank { "Gagal memproses permintaan AI (${e.javaClass.simpleName})." }
         }
     }
 }

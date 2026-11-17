@@ -28,6 +28,7 @@ import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.MedicalServices
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -36,6 +37,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -53,10 +55,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.R
 import com.example.data.knowledge.PlantKnowledgeRepository
 import com.example.model.AiIdentificationResult
 import com.example.model.CultivationMethod
@@ -64,6 +68,7 @@ import com.example.model.GrowthStage
 import com.example.ui.components.ConfidenceBadge
 import com.example.ui.components.PhotoPickerButtons
 import com.example.ui.components.PillBadge
+import com.example.ui.components.decodeDrawableToBitmap
 import com.example.ui.components.encodeBitmapToBase64
 import com.example.ui.theme.LightGreen
 import com.example.ui.theme.PrimaryGreen
@@ -93,7 +98,15 @@ fun IdentifyPlantScreen(
         imageBase64: String?
     ) -> Unit
 ) {
+    val context = LocalContext.current
     var showSaveDialog by remember { mutableStateOf(false) }
+    var showDiagDialog by remember { mutableStateOf(false) }
+
+    if (showDiagDialog) {
+        com.example.ui.components.FirebaseAiDiagnosticDialog(
+            onDismiss = { showDiagDialog = false }
+        )
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -101,11 +114,27 @@ fun IdentifyPlantScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            Text(
-                text = "Identifikasi Tanaman",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Identifikasi Tanaman",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(
+                    onClick = { showDiagDialog = true },
+                    modifier = Modifier.testTag("open_ai_diag_header_button")
+                ) {
+                    Icon(
+                        Icons.Rounded.VerifiedUser,
+                        contentDescription = "Diagnostik & Token AI",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
             Text(
                 text = "Foto daun, bunga, buah, atau keseluruhan tanaman untuk mengenali jenis dan cara merawatnya.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -127,45 +156,9 @@ fun IdentifyPlantScreen(
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(220.dp)
+                                .height(180.dp)
                                 .clip(RoundedCornerShape(16.dp))
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(LightGreen),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.Rounded.CameraAlt,
-                                    contentDescription = null,
-                                    tint = PrimaryGreen,
-                                    modifier = Modifier.size(40.dp)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    "Pilih foto dari kamera atau galeri",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = PrimaryGreen,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-
-                    PhotoPickerButtons(
-                        onBitmapReady = onBitmapSelected,
-                        cameraTestTag = "identify_camera_button",
-                        galleryTestTag = "identify_gallery_button"
-                    )
-
-                    if (bitmap != null) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -190,6 +183,69 @@ fun IdentifyPlantScreen(
                             ) {
                                 Icon(Icons.Rounded.Refresh, contentDescription = "Reset foto")
                             }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(140.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(LightGreen),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Rounded.CameraAlt,
+                                    contentDescription = null,
+                                    tint = PrimaryGreen,
+                                    modifier = Modifier.size(36.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "Pilih foto dari kamera atau galeri",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = PrimaryGreen,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    PhotoPickerButtons(
+                        onBitmapReady = { picked ->
+                            onBitmapSelected(picked)
+                        },
+                        cameraTestTag = "identify_camera_button",
+                        galleryTestTag = "identify_gallery_button"
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        "Atau uji cepat dengan foto contoh:",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(
+                            Triple("Cabai", R.drawable.img_plant_cabai, "sample_photo_cabai"),
+                            Triple("Tomat", R.drawable.img_plant_tomat, "sample_photo_tomat"),
+                            Triple("Pakcoy", R.drawable.img_plant_pakcoy, "sample_photo_pakcoy")
+                        ).forEach { (label, resId, tag) ->
+                            FilterChip(
+                                selected = false,
+                                onClick = {
+                                    decodeDrawableToBitmap(context, resId)?.let { sampleBmp ->
+                                        onAnalyzeClick(sampleBmp)
+                                    }
+                                },
+                                label = { Text("Contoh: $label") },
+                                modifier = Modifier
+                                    .defaultMinSize(minHeight = 48.dp)
+                                    .testTag(tag)
+                            )
                         }
                     }
                 }
@@ -244,13 +300,26 @@ fun IdentifyPlantScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
-                            if (bitmap != null) {
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Button(
-                                    onClick = { onAnalyzeClick(bitmap) },
-                                    modifier = Modifier.defaultMinSize(minHeight = 48.dp)
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (bitmap != null) {
+                                    Button(
+                                        onClick = { onAnalyzeClick(bitmap) },
+                                        modifier = Modifier.defaultMinSize(minHeight = 48.dp)
+                                    ) {
+                                        Text("Coba Lagi")
+                                    }
+                                }
+                                OutlinedButton(
+                                    onClick = { showDiagDialog = true },
+                                    modifier = Modifier.defaultMinSize(minHeight = 48.dp).testTag("open_ai_diag_from_error_button")
                                 ) {
-                                    Text("Coba Lagi")
+                                    Icon(Icons.Rounded.VerifiedUser, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Diagnostik & Token AI")
                                 }
                             }
                         }

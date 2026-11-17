@@ -56,9 +56,7 @@ class AiPlantViewModel(
 
     fun setIdentificationBitmap(bitmap: Bitmap?) {
         _identificationBitmap.value = bitmap
-        if (bitmap == null) {
-            _identificationState.value = null
-        }
+        _identificationState.value = null
     }
 
     fun analyzePlantPhoto(bitmap: Bitmap) {
@@ -84,6 +82,9 @@ class AiPlantViewModel(
 
     fun setDiagnosisBitmap(bitmap: Bitmap?) {
         _diagnosisBitmap.value = bitmap
+        if (bitmap == null || _diagnosisState.value is UiState.Error) {
+            _diagnosisState.value = null
+        }
     }
 
     fun runPlantDiagnosis(

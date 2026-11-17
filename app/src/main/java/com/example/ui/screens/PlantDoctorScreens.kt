@@ -58,9 +58,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.R
 import com.example.model.AiDiagnosisResult
 import com.example.model.CultivationMethod
 import com.example.model.GrowthStage
@@ -71,6 +73,7 @@ import com.example.ui.components.HealthStatusBadge
 import com.example.ui.components.MethodBadge
 import com.example.ui.components.PhotoPickerButtons
 import com.example.ui.components.RiskLevelBadge
+import com.example.ui.components.decodeDrawableToBitmap
 import com.example.ui.theme.LightGreen
 import com.example.ui.theme.PrimaryGreen
 import com.example.ui.theme.WarningContainer
@@ -101,6 +104,7 @@ fun PlantDoctorScreen(
     onReset: () -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val initialPlant = remember(plants, initialPlantId) {
         plants.firstOrNull { it.id == initialPlantId } ?: plants.firstOrNull()
     }
@@ -249,7 +253,7 @@ fun PlantDoctorScreen(
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(200.dp)
+                                    .height(170.dp)
                                     .clip(RoundedCornerShape(14.dp))
                             )
                         }
@@ -259,6 +263,25 @@ fun PlantDoctorScreen(
                             cameraTestTag = "doctor_camera_button",
                             galleryTestTag = "doctor_gallery_button"
                         )
+
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(
+                                Triple("Contoh Cabai", R.drawable.img_plant_cabai, "Cabai Rawit"),
+                                Triple("Contoh Tomat", R.drawable.img_plant_tomat, "Tomat Cherry")
+                            ).forEach { (label, resId, pName) ->
+                                FilterChip(
+                                    selected = false,
+                                    onClick = {
+                                        decodeDrawableToBitmap(context, resId)?.let { bmp ->
+                                            onBitmapSelected(bmp)
+                                            if (selectedPlant == null) customPlantName = pName
+                                        }
+                                    },
+                                    label = { Text(label) },
+                                    modifier = Modifier.defaultMinSize(minHeight = 48.dp)
+                                )
+                            }
+                        }
 
                         OutlinedTextField(
                             value = symptomNotes,

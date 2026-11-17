@@ -1,12 +1,16 @@
 package com.example.ui.components
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.net.Uri
+import android.os.Build
 import android.util.Base64
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,6 +40,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -44,6 +49,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,8 +82,12 @@ import com.example.ui.theme.SuccessContainer
 import com.example.ui.theme.SuccessGreen
 import com.example.ui.theme.WarningAmber
 import com.example.ui.theme.WarningContainer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
+import kotlin.math.roundToInt
 
 @Composable
 fun PlantImage(
@@ -272,15 +283,50 @@ fun PhotoPickerButtons(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
-    var permissionMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    var pendingCameraUriString by rememberSaveable { mutableStateOf<String?>(null) }
+    var pickerMessage by remember { mutableStateOf<String?>(null) }
+    var isDecoding by remember { mutableStateOf(false) }
+
+    fun handlePickedUri(uri: Uri, sourceLabel: String) {
+        scope.launch {
+            isDecoding = true
+            pickerMessage = null
+            val decoded = withContext(Dispatchers.IO) {
+                decodeUriToBitmap(context, uri)
+            }
+            isDecoding = false
+            if (decoded != null) {
+                onBitmapReady(decoded)
+            } else {
+                pickerMessage = "Gagal membaca foto dari $sourceLabel. Coba pilih gambar JPG/PNG lain."
+            }
+        }
+    }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
-        val uri = pendingCameraUri
-        if (success && uri != null) {
-            decodeUriToBitmap(context, uri)?.let(onBitmapReady)
+        val uriStr = pendingCameraUriString
+        pendingCameraUriString = null
+        if (success && !uriStr.isNullOrBlank()) {
+            handlePickedUri(Uri.parse(uriStr), "kamera")
+        } else if (success) {
+            pickerMessage = "Lokasi file kamera tidak ditemukan. Silakan ulangi atau pilih dari galeri."
+        }
+    }
+
+    fun launchCameraSafely() {
+        try {
+            val uri = createTempCameraUri(context)
+            pendingCameraUriString = uri.toString()
+            cameraLauncher.launch(uri)
+        } catch (e: ActivityNotFoundException) {
+            Log.w("PhotoPicker", "No camera app available", e)
+            pickerMessage = "Aplikasi kamera tidak tersedia di perangkat ini. Gunakan Pilih Galeri atau Foto Contoh."
+        } catch (e: Exception) {
+            Log.e("PhotoPicker", "Failed to launch camera", e)
+            pickerMessage = "Tidak dapat membuka kamera (${e.localizedMessage ?: "error"})."
         }
     }
 
@@ -288,12 +334,18 @@ fun PhotoPickerButtons(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            permissionMessage = null
-            val uri = createTempCameraUri(context)
-            pendingCameraUri = uri
-            cameraLauncher.launch(uri)
+            pickerMessage = null
+            launchCameraSafely()
         } else {
-            permissionMessage = "Izin kamera ditolak. Kamu tetap bisa memilih foto dari galeri."
+            pickerMessage = "Izin kamera ditolak. Kamu tetap bisa memilih foto dari galeri."
+        }
+    }
+
+    val fallbackGalleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            handlePickedUri(uri, "galeri")
         }
     }
 
@@ -301,8 +353,7 @@ fun PhotoPickerButtons(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
-            permissionMessage = null
-            decodeUriToBitmap(context, uri)?.let(onBitmapReady)
+            handlePickedUri(uri, "galeri")
         }
     }
 
@@ -318,13 +369,12 @@ fun PhotoPickerButtons(
                         Manifest.permission.CAMERA
                     ) == PackageManager.PERMISSION_GRANTED
                     if (hasCam) {
-                        val uri = createTempCameraUri(context)
-                        pendingCameraUri = uri
-                        cameraLauncher.launch(uri)
+                        launchCameraSafely()
                     } else {
                         permissionLauncher.launch(Manifest.permission.CAMERA)
                     }
                 },
+                enabled = !isDecoding,
                 modifier = Modifier
                     .weight(1f)
                     .defaultMinSize(minHeight = 48.dp)
@@ -337,10 +387,24 @@ fun PhotoPickerButtons(
 
             OutlinedButton(
                 onClick = {
-                    photoPickerLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
+                    pickerMessage = null
+                    try {
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    } catch (e: ActivityNotFoundException) {
+                        Log.w("PhotoPicker", "PickVisualMedia unavailable, falling back to GetContent", e)
+                        try {
+                            fallbackGalleryLauncher.launch("image/*")
+                        } catch (inner: Exception) {
+                            pickerMessage = "Galeri tidak tersedia di perangkat ini. Gunakan Foto Contoh di bawah."
+                        }
+                    } catch (e: Exception) {
+                        Log.e("PhotoPicker", "Failed to open gallery", e)
+                        pickerMessage = "Gagal membuka galeri (${e.localizedMessage ?: "error"})."
+                    }
                 },
+                enabled = !isDecoding,
                 modifier = Modifier
                     .weight(1f)
                     .defaultMinSize(minHeight = 48.dp)
@@ -351,10 +415,14 @@ fun PhotoPickerButtons(
                 Text("Pilih Galeri")
             }
         }
-        if (permissionMessage != null) {
+        if (isDecoding) {
+            Spacer(modifier = Modifier.height(8.dp))
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+        if (pickerMessage != null) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = permissionMessage!!,
+                text = pickerMessage!!,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error
             )
@@ -458,29 +526,162 @@ fun createTempCameraUri(context: Context): Uri {
 }
 
 fun decodeUriToBitmap(context: Context, uri: Uri): Bitmap? {
-    return runCatching {
+    val maxDim = 1280
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        val imageDecoderBitmap = runCatching {
+            val source = ImageDecoder.createSource(context.contentResolver, uri)
+            ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                val w = info.size.width
+                val h = info.size.height
+                if (w > maxDim || h > maxDim) {
+                    val ratio = w.toFloat() / h.coerceAtLeast(1).toFloat()
+                    val targetW = if (ratio >= 1f) maxDim else (maxDim * ratio).roundToInt().coerceAtLeast(1)
+                    val targetH = if (ratio >= 1f) (maxDim / ratio).roundToInt().coerceAtLeast(1) else maxDim
+                    decoder.setTargetSize(targetW, targetH)
+                }
+            }
+        }.onFailure { t ->
+            Log.w("PhotoPicker", "ImageDecoder failed for $uri, falling back to BitmapFactory", t)
+        }.getOrNull()
+
+        if (imageDecoderBitmap != null) {
+            return runCatching { ensureSoftwareArgb8888(scaleToMaxDim(imageDecoderBitmap, maxDim)) }.getOrNull()
+        }
+    }
+
+    return try {
+        val boundsOpts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         context.contentResolver.openInputStream(uri)?.use { stream ->
-            val original = BitmapFactory.decodeStream(stream) ?: return@use null
-            val maxDim = 1024
-            if (original.width <= maxDim && original.height <= maxDim) {
-                original
-            } else {
-                val ratio = original.width.toFloat() / original.height.toFloat()
-                val w = if (ratio >= 1f) maxDim else (maxDim * ratio).toInt().coerceAtLeast(1)
-                val h = if (ratio >= 1f) (maxDim / ratio).toInt().coerceAtLeast(1) else maxDim
-                Bitmap.createScaledBitmap(original, w, h, true)
+            BitmapFactory.decodeStream(stream, null, boundsOpts)
+        }
+        var sampleSize = 1
+        val outW = boundsOpts.outWidth
+        val outH = boundsOpts.outHeight
+        if (outW > maxDim || outH > maxDim) {
+            while ((outW / sampleSize) > maxDim * 2 || (outH / sampleSize) > maxDim * 2) {
+                sampleSize *= 2
             }
         }
-    }.getOrNull()
+        val decodeOpts = BitmapFactory.Options().apply {
+            inSampleSize = sampleSize
+            inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+        val decoded = context.contentResolver.openInputStream(uri)?.use { stream ->
+            BitmapFactory.decodeStream(stream, null, decodeOpts)
+        } ?: return null
+        ensureSoftwareArgb8888(scaleToMaxDim(decoded, maxDim))
+    } catch (t: Throwable) {
+        Log.e("PhotoPicker", "Failed to decode URI bitmap via BitmapFactory: $uri", t)
+        null
+    }
+}
+
+fun decodeDrawableToBitmap(context: Context, resId: Int, maxDim: Int = 1024): Bitmap? {
+    return try {
+        val opts = BitmapFactory.Options().apply {
+            inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+        val decoded = BitmapFactory.decodeResource(context.resources, resId, opts) ?: return null
+        ensureSoftwareArgb8888(scaleToMaxDim(decoded, maxDim))
+    } catch (t: Throwable) {
+        Log.e("PhotoPicker", "Failed to decode drawable resource: $resId", t)
+        null
+    }
+}
+
+private fun scaleToMaxDim(bitmap: Bitmap, maxDim: Int): Bitmap {
+    if (bitmap.width <= maxDim && bitmap.height <= maxDim) return bitmap
+    val ratio = bitmap.width.toFloat() / bitmap.height.coerceAtLeast(1).toFloat()
+    val w = if (ratio >= 1f) maxDim else (maxDim * ratio).roundToInt().coerceAtLeast(1)
+    val h = if (ratio >= 1f) (maxDim / ratio).roundToInt().coerceAtLeast(1) else maxDim
+    return Bitmap.createScaledBitmap(bitmap, w, h, true)
+}
+
+private fun ensureSoftwareArgb8888(bitmap: Bitmap): Bitmap {
+    return if (bitmap.config == Bitmap.Config.HARDWARE || bitmap.config != Bitmap.Config.ARGB_8888) {
+        bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: bitmap
+    } else {
+        bitmap
+    }
 }
 
 fun encodeBitmapToBase64(bitmap: Bitmap): String {
+    val safeBitmap = ensureSoftwareArgb8888(bitmap)
     val maxDim = 480
-    val ratio = bitmap.width.toFloat() / bitmap.height.toFloat()
-    val w = if (bitmap.width > maxDim && ratio >= 1f) maxDim else if (bitmap.height > maxDim) (maxDim * ratio).toInt().coerceAtLeast(1) else bitmap.width
-    val h = if (bitmap.height > maxDim && ratio < 1f) maxDim else if (bitmap.width > maxDim) (maxDim / ratio).toInt().coerceAtLeast(1) else bitmap.height
-    val scaled = if (w != bitmap.width || h != bitmap.height) Bitmap.createScaledBitmap(bitmap, w, h, true) else bitmap
+    val scaled = scaleToMaxDim(safeBitmap, maxDim)
     val baos = ByteArrayOutputStream()
     scaled.compress(Bitmap.CompressFormat.JPEG, 72, baos)
     return Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP)
+}
+
+@Composable
+fun FirebaseAiDiagnosticDialog(
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    var info by remember { mutableStateOf(com.example.data.firebase.getFirebaseDiagnostics(context)) }
+    var customTokenInput by remember { mutableStateOf(info.appCheckDebugToken.orEmpty()) }
+    var statusNotice by remember { mutableStateOf<String?>(null) }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Diagnostik Firebase & AI") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Project ID: ${info.projectId}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                Text("Package: ${info.packageName}", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "API Key: ${info.apiKeyMasked} (${if (info.isApiKeyValidFormat) "Terbaca" else "Bermasalah"})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (info.isApiKeyValidFormat) PrimaryGreen else MaterialTheme.colorScheme.error
+                )
+                if (info.isDebugBuild) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Jika menggunakan APK Debug di HP fisik (di luar emulator AI Studio), daftarkan Debug Token berikut di Firebase Console → App Check → Apps → Manage debug tokens:",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    androidx.compose.material3.OutlinedTextField(
+                        value = customTokenInput,
+                        onValueChange = { customTokenInput = it },
+                        label = { Text("App Check Debug Token") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                clipboard.setText(androidx.compose.ui.text.AnnotatedString(customTokenInput))
+                                statusNotice = "Token disalin ke clipboard."
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Salin Token")
+                        }
+                        Button(
+                            onClick = {
+                                if (com.example.data.firebase.updateAppCheckDebugToken(context, customTokenInput)) {
+                                    info = com.example.data.firebase.getFirebaseDiagnostics(context)
+                                    statusNotice = "Token berhasil disimpan."
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Simpan Token")
+                        }
+                    }
+                }
+                if (statusNotice != null) {
+                    Text(statusNotice!!, style = MaterialTheme.typography.bodySmall, color = PrimaryGreen)
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("Tutup")
+            }
+        }
+    )
 }
